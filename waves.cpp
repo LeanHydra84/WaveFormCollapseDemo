@@ -3,21 +3,32 @@
 Waves::Waves() : _wave() { }
 
 
-BitRange Waves::add_droplet(Tile tile)
+void Waves::add_droplet(Tile tile)
 {
-    _wave.push_back(1 << (_wave.siez() + 1), tile)
+    _wave.push_back(Droplet(1 << (_wave.size() + 1), tile));
 }
+
+#include <iostream>
+#include <bitset>
 
 BitRange Waves::get_expanded_entropy(BitRange bits) const
 {
-    BitRange newRange = 0;
-    int index = bits;
+    //std::cout << "Start: " << std::bitset<8>(bits) << std::endl;
+    return get_adjacency(bits);
+    BitRange newRange = bits;
+    int index = 0;
     while(bits != 0)
     {
         if(bits & 0x1)
         {
-            newRange |= _wave[index].first;
+            //std::cout << "getting adjacency from index " << index << std::endl;
+            BitRange adj = get_adjacency(bits);
+            //std::cout << "Oring: " << std::bitset<8>(newRange) << " | " << std::bitset<8>(adj) << " == " <<
+            //    std::bitset<8>(newRange | adj) << std::endl;
+            newRange |= adj;
         }
+
+        bits >>= 1;
         ++index;
     }
     return newRange;
@@ -26,7 +37,7 @@ BitRange Waves::get_expanded_entropy(BitRange bits) const
 BitRange Waves::get_droplet(Tile tile) const
 {
     int idx = tile_index(tile);
-    return (idx == -1) ? default(BitRange) : _wave[idx].first;
+    return (idx == -1) ? BitRange() : _wave[idx].first;
 }
 
 int Waves::tile_index(Tile tile) const
@@ -38,7 +49,7 @@ int Waves::tile_index(Tile tile) const
     return -1;
 }
 
-BitRange Waves::get_adjacency(Tile tile) const
+BitRange Waves::get_adjacency_tile(Tile tile) const
 {
     int idx = tile_index(tile);
     int rv = _wave[idx].first;
@@ -50,13 +61,28 @@ BitRange Waves::get_adjacency(Tile tile) const
     return rv;
 }
 
-// theres definitely a faster way to do this using the index of the rightmost set bit,
-// but I don't think I'll ever even call this function so why bother
-Tile Waves::get_tile_from_adj(BitRange wave) const 
+BitRange Waves::get_adjacency(BitRange bits) const
 {
-    for (size_t i = 0; i < _wave.size(); i++)
+    const BitRange mask = ~(UINT_MAX << _wave.size());
+    return (bits | (bits >> 1) | (bits << 1)) & mask;
+}
+
+Tile Waves::get_random_from_adj(BitRange bits) const 
+{
+    std::vector<size_t> indices;
+    
+    int position = 0;
+    while(bits != 0 && position < _wave.size())
     {
-        if(_wave[i].first == wave) return _wave[i].second;
+        if(bits & 0x1)
+        {
+            indices.push_back(position);
+        }
+        bits >>= 1;
+        ++position;
     }
-    return default(BitRange);
+
+    size_t index = indices[rand() % indices.size()];
+    //std::cout << "Choosing " << _wave[index].second << " from " << indices.size() << " choices" << std::endl;
+    return _wave[index].second;
 }

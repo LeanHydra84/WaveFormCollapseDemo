@@ -5,7 +5,7 @@
 #include <vector>
 
 using Tile = char;
-using BitRange = int;
+using BitRange = unsigned int;
 using Droplet = std::pair<BitRange, Tile>;
 
 
@@ -19,14 +19,17 @@ private:
 public:
     Waves();
 
-    BitRange add_droplet(Tile tile);
+    void add_droplet(Tile tile);
 
     int tile_index(Tile tile) const;
     BitRange get_expanded_entropy(BitRange bits) const;
     BitRange get_droplet(Tile tile) const;
-    BitRange get_adjacency(Tile tile) const;
-    Tile get_tile_from_adj(BitRange wave) const;
+    BitRange get_adjacency(BitRange bits) const;
+    BitRange get_adjacency_tile(Tile tile) const;
+    Tile get_random_from_adj(BitRange wave) const;
 };
+
+#include <memory>
 
 class Board
 {
@@ -41,6 +44,10 @@ public:
 private:
     void propogate(BitRange* table, size_t index, BitRange entropy, const Waves& waves);
     void recur_prop(BitRange* table, size_t index, BitRange entropy, const Waves& waves, bool* hasPropogated);
+    size_t get_random_minimum_entropy(const BitRange* range, size_t length);
+    
+    void print_bsboard(const std::unique_ptr<BitRange[]>& table);
+    
     size_t xytoi(size_t x, size_t y);
     std::pair<size_t, size_t> itoxy(size_t index);
 
